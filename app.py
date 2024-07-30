@@ -59,10 +59,13 @@ def get_dados():
     conexao = conectar()
     if conexao:
         try:
+            # parametros
+            tabela = 'conexao_internet'
+
             cursor = conexao.cursor()
-            consulta = '''
+            consulta = f'''
                 SELECT data, hora, ping, download, upload 
-                FROM conexao_internet;
+                FROM {tabela};
             '''
             cursor.execute(consulta)
             # Obtém todos os resultados
@@ -100,9 +103,12 @@ def contar_testes():
     conexao = conectar()
     if conexao:
         try:
+            # parametros
+            tabela = 'conexao_internet'
+            
             cursor = conexao.cursor()
-            consulta = '''
-                SELECT COUNT(*) AS contagem FROM conexao_internet;
+            consulta = f'''
+                SELECT COUNT(*) AS contagem FROM {tabela};
             '''
             cursor.execute(consulta)
             # Obtém o resultado
