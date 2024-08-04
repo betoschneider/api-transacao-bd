@@ -107,9 +107,7 @@ def contar_testes():
             tabela = 'conexao_internet'
             
             cursor = conexao.cursor()
-            consulta = f'''
-                SELECT COUNT(*) AS contagem FROM {tabela};
-            '''
+            consulta = f'SELECT COUNT(*) AS contagem FROM {tabela};'
             cursor.execute(consulta)
             # Obtém o resultado
             result = cursor.fetchone()
@@ -132,6 +130,39 @@ def contar_testes():
             cursor.close()
             conexao.close()
 
-#executar app
+# último registro
+@app.route('/max', methods=['GET'])
+def get_max_data():
+    conexao = conectar()
+    if conexao:
+        try:
+            # parametros
+            tabela = 'conexao_internet'
+            
+            cursor = conexao.cursor()
+            consulta = f'SELECT cast(max(data) as text) AS data FROM {tabela};'
+            cursor.execute(consulta)
+            # Obtém o resultado
+            result = cursor.fetchone()
+
+            # Se não houver resultado, retorna None
+            if result is None:
+                return None
+
+            # Obtém os nomes das colunas
+            columns = [desc[0] for desc in cursor.description]
+
+            # Cria um dicionário para a linha e converte para JSON
+            row_dict = dict(zip(columns, result))
+
+            return json.dumps(row_dict, indent=2, ensure_ascii=False), 200
+            
+        except psycopg2.Error as e:
+            {"message": "nao foi possivel efetuar a contagem"}, 500
+        finally:
+            cursor.close()
+            conexao.close()
+
+# executar app
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
