@@ -26,9 +26,11 @@ def inserir_teste():
             tabela = 'conexao_internet'
             data = request.json['data']
             hora = request.json['hora']
+            servidor = request.json['server']
             ping = request.json['ping']
             download = request.json['download']
             upload = request.json['upload']
+            tipo = request.json['tipo']
 
             cursor = conexao.cursor()
 
@@ -40,10 +42,10 @@ def inserir_teste():
             
             # faz a inserção dos dados
             query_inserir_dados = sql.SQL(f'''
-                INSERT INTO {tabela} (data, hora, ping, download, upload)
-                VALUES (%s, %s, %s, %s, %s) RETURNING id;
+                INSERT INTO {tabela} (data, hora, servidor, ping, download, upload, tipo)
+                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id;
             ''')
-            cursor.execute(query_inserir_dados, (data, hora, ping, download, upload))
+            cursor.execute(query_inserir_dados, (data, hora, servidor, ping, download, upload, tipo))
             id_teste = cursor.fetchone()[0]
             conexao.commit()
             return {"id": id_teste}, 200
@@ -64,7 +66,7 @@ def get_dados():
 
             cursor = conexao.cursor()
             consulta = f'''
-                SELECT data, hora, ping, download, upload 
+                SELECT data, hora, servidor, ping, download, upload, tipo
                 FROM {tabela};
             '''
             cursor.execute(consulta)
