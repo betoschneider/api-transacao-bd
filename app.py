@@ -237,7 +237,7 @@ def testes_mes_atual():
                     , download
                     , upload
                 FROM {tabela}
-                where to_char(data, 'yyyy-mm') = (select to_char(max(data), 'yyyy-mm') FROM {tabela});
+                WHERE to_char(data, 'yyyy-mm') = (select to_char(max(data), 'yyyy-mm') FROM {tabela});
             '''
             cursor.execute(consulta)
             # Obtém todos os resultados
@@ -269,16 +269,24 @@ def testes_mes_atual():
             cursor.close()
             conexao.close()
 
-# maior e menor valor
-@app.route('/picos', methods=['GET']) #/picos?t=download&p=max
-def get_picos():
+# agregação máximo e mínimo
+@app.route('/agg', methods=['GET']) #/agg?t=download&a=max&p=atual
+def get_agg():
     conexao = conectar()
-    teste = request.args.get('t').lower()
-    pico = request.args.get('p').lower()
+
     if conexao:
         try:
             # parametros
             tabela = 'conexao_internet'
+
+            teste = request.args.get('t').lower()
+            agg = request.args.get('a').lower()
+
+            try:
+                periodo = request.args.get('p').lower()
+                periodo = f"AND to_char(data, 'yyyy-mm') = (select to_char(max(data), 'yyyy-mm') FROM {tabela})"
+            except:
+                periodo = f""
 
             cursor = conexao.cursor()
             consulta = f'''
@@ -291,8 +299,9 @@ def get_picos():
                     , download
                     , upload
                 FROM {tabela}
-                where download = (select {pico}({teste}) FROM {tabela})
-                limit 1;
+                WHERE download = (select {agg}({teste}) FROM {tabela})
+                {periodo}
+                LIMIT 1;
             '''
             cursor.execute(consulta)
             # Obtém todos os resultados
