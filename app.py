@@ -180,12 +180,13 @@ def media_mes():
                     , 'yyyy-mm') AS ano_mes
                     , to_char(data, 'yyyy') AS ano
                     , to_char(data, 'mm') AS mes
+                    , servidor
                     , avg(ping) AS ping
                     , avg(download) AS download
                     , avg(upload) AS upload
                     , count(data) AS qtd_testes
                 FROM {tabela}
-                GROUP BY to_char(data, 'yyyy-mm'), to_char(data, 'yyyy'), to_char(data, 'mm');
+                GROUP BY to_char(data, 'yyyy-mm'), to_char(data, 'yyyy'), to_char(data, 'mm'), servidor;
             '''
             cursor.execute(consulta)
             # Obtém todos os resultados
@@ -231,11 +232,67 @@ def testes_mes_atual():
                 SELECT data
                     , to_char(data, 'yyyy') AS ano
                     , to_char(data, 'mm') AS mes
+                    , servidor
                     , ping
                     , download
                     , upload
                 FROM {tabela}
                 where to_char(data, 'yyyy-mm') = (select to_char(max(data), 'yyyy-mm') FROM {tabela});
+            '''
+            cursor.execute(consulta)
+            # Obtém todos os resultados
+            results = cursor.fetchall()
+
+            # Se não houver resultados, retorna uma lista vazia
+            if not results:
+                return jsonify([]), 200
+
+            # Obtém os nomes das colunas
+            columns = [desc[0] for desc in cursor.description]
+
+            # Converte os resultados para uma lista de dicionários
+            result_dicts = []
+            for row in results:
+                row_dict = {}
+                for col, val in zip(columns, row):
+                    # Converte tipos não serializáveis para strings
+                    if isinstance(val, (date, time)):
+                        row_dict[col] = val.isoformat()
+                    else:
+                        row_dict[col] = val
+                result_dicts.append(row_dict)
+
+            return jsonify(result_dicts), 200
+        except psycopg2.Error as e:
+            return jsonify({"message": "Erro no servidor"}), 500
+        finally:
+            cursor.close()
+            conexao.close()
+
+# maior e menor valor
+@app.route('/picos', methods=['GET']) #/picos?t=download&p=max
+def get_picos():
+    conexao = conectar()
+    teste = request.args.get('t').lower()
+    pico = request.args.get('p').lower()
+    if conexao:
+        try:
+            # parametros
+            tabela = 'conexao_internet'
+
+            cursor = conexao.cursor()
+            consulta = f'''
+                SELECT data
+                    , hora
+                    , to_char(data, 'yyyy') AS ano
+                    , to_char(data, 'mm') AS mes
+                    , servidor
+                    , ping
+                    , download
+                    , upload
+                FROM {tabela}
+                where download = (select {pico}({teste}) FROM {tabela})
+                limit 1;
             '''
             cursor.execute(consulta)
             # Obtém todos os resultados
