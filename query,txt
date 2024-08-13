@@ -1,0 +1,11 @@
+-- menor resultado de download
+SELECT data
+	, hora
+	, to_char(data, 'yyyy') AS ano
+	, to_char(data, 'mm') AS mes
+	, ping
+	, download
+	, upload
+FROM public.conexao_internet
+where download = (select min(download) FROM public.conexao_internet)
+limit 1;

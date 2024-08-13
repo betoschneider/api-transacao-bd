@@ -132,7 +132,7 @@ def contar_testes():
             cursor.close()
             conexao.close()
 
-# último registro
+# maior data
 @app.route('/max', methods=['GET'])
 def get_max_data():
     conexao = conectar()
@@ -161,6 +161,108 @@ def get_max_data():
             
         except psycopg2.Error as e:
             {"message": "nao foi possivel efetuar a contagem"}, 500
+        finally:
+            cursor.close()
+            conexao.close()
+
+# Média mensal
+@app.route('/media-mes', methods=['GET'])
+def media_mes():
+    conexao = conectar()
+    if conexao:
+        try:
+            # parametros
+            tabela = 'conexao_internet'
+
+            cursor = conexao.cursor()
+            consulta = f'''
+                SELECT to_char(data
+                    , 'yyyy-mm') AS ano_mes
+                    , to_char(data, 'yyyy') AS ano
+                    , to_char(data, 'mm') AS mes
+                    , avg(ping) AS ping
+                    , avg(download) AS download
+                    , avg(upload) AS upload
+                    , count(data) AS qtd_testes
+                FROM {tabela}
+                GROUP BY to_char(data, 'yyyy-mm'), to_char(data, 'yyyy'), to_char(data, 'mm');
+            '''
+            cursor.execute(consulta)
+            # Obtém todos os resultados
+            results = cursor.fetchall()
+
+            # Se não houver resultados, retorna uma lista vazia
+            if not results:
+                return jsonify([]), 200
+
+            # Obtém os nomes das colunas
+            columns = [desc[0] for desc in cursor.description]
+
+            # Converte os resultados para uma lista de dicionários
+            result_dicts = []
+            for row in results:
+                row_dict = {}
+                for col, val in zip(columns, row):
+                    # Converte tipos não serializáveis para strings
+                    if isinstance(val, (date, time)):
+                        row_dict[col] = val.isoformat()
+                    else:
+                        row_dict[col] = val
+                result_dicts.append(row_dict)
+
+            return jsonify(result_dicts), 200
+        except psycopg2.Error as e:
+            return jsonify({"message": "Erro no servidor"}), 500
+        finally:
+            cursor.close()
+            conexao.close()
+
+# testes no mes atual
+@app.route('/testes-mes-atual', methods=['GET'])
+def testes_mes_atual():
+    conexao = conectar()
+    if conexao:
+        try:
+            # parametros
+            tabela = 'conexao_internet'
+
+            cursor = conexao.cursor()
+            consulta = f'''
+                SELECT data
+                    , to_char(data, 'yyyy') AS ano
+                    , to_char(data, 'mm') AS mes
+                    , ping
+                    , download
+                    , upload
+                FROM {tabela}
+                where to_char(data, 'yyyy-mm') = (select to_char(max(data), 'yyyy-mm') FROM {tabela});
+            '''
+            cursor.execute(consulta)
+            # Obtém todos os resultados
+            results = cursor.fetchall()
+
+            # Se não houver resultados, retorna uma lista vazia
+            if not results:
+                return jsonify([]), 200
+
+            # Obtém os nomes das colunas
+            columns = [desc[0] for desc in cursor.description]
+
+            # Converte os resultados para uma lista de dicionários
+            result_dicts = []
+            for row in results:
+                row_dict = {}
+                for col, val in zip(columns, row):
+                    # Converte tipos não serializáveis para strings
+                    if isinstance(val, (date, time)):
+                        row_dict[col] = val.isoformat()
+                    else:
+                        row_dict[col] = val
+                result_dicts.append(row_dict)
+
+            return jsonify(result_dicts), 200
+        except psycopg2.Error as e:
+            return jsonify({"message": "Erro no servidor"}), 500
         finally:
             cursor.close()
             conexao.close()
